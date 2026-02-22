@@ -1,2 +1,103 @@
-# wildweek
-Randomly populate weekly calendar with wildcard activities intended to freshen up my schedule.
+# Wildweek
+
+Deterministic CLI scheduler for wildcard activities.
+
+It reads activity data from CSV, builds a day-by-day schedule, prints a text table, and writes an ICS calendar file.
+
+## Input CSV
+
+CSV headers must be:
+
+```csv
+name,duration,probability
+```
+
+- `name`: activity name
+- `duration`: minutes (integer, `>= 0`)
+- `probability`: float in `[0,1]`
+
+Example (`wild-events.csv`):
+
+```csv
+name,duration,probability
+Forest Trail,40,0.45
+Birdwatching,30,0.35
+Farmers Market,50,0.30
+Kayak,60,0.20
+Campfire,45,0.40
+Stargazing,35,0.55
+```
+
+## Command Line
+
+Run:
+
+```bash
+python3 scheduler.py --csv wild-events.csv
+```
+
+Supported flags:
+
+- `--csv`: input CSV path
+- `--config`: config file path (default: `wildweek.conf`)
+- `--min_minutes`: minimum daily minutes for wildcard activities (default: `10`)
+- `--max_minutes`: maximum daily minutes for wildcard activities (default: `60`)
+- `--days`: number of days to schedule (default: `7`)
+- `--ics_file`: output ICS filename (default: `wildweeks.ics`)
+
+## Config File
+
+All parameters can be set in config as `key=value` lines.
+
+Default template file:
+
+```text
+# Wildweek default config
+# csv=sample.csv
+# min_minutes=10
+# max_minutes=60
+# days=7
+# ics_file=wildweeks.ics
+```
+
+Rules:
+
+- Empty lines and `#` comments are ignored.
+- CLI args override config values.
+
+## Output
+
+The CLI writes:
+
+- Text table to stdout, e.g.:
+
+```text
+Day | Total Minutes | Activities
+--- | ------------- | ----------
+1 (Mon) | 75 | Hike(30), Museum(45)
+2 (Tue) | 75 | Hike(30), Cafe(20), Read(25)
+```
+
+- ICS file to `--ics_file` path (or `wildweeks.ics` by default).
+
+## Scheduling Behavior
+
+- Deterministic draw function (same inputs produce same schedule).
+- An activity appears at most once per day.
+- Daily total is constrained by `min_minutes` and `max_minutes` when possible.
+- Effective activity probability increases with days since last use.
+
+## Tests
+
+Run:
+
+```bash
+python3 -m unittest discover -s tests -v
+```
+
+Current test coverage includes:
+
+- CSV parsing
+- deterministic scheduling + constraints
+- ICS file generation
+- CLI-over-config precedence
