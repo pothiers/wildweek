@@ -2,7 +2,7 @@
 
 Deterministic CLI scheduler for wildcard activities.
 
-It reads activity data from CSV, builds a day-by-day schedule, prints a text table, and writes an schedule CSV file.
+It reads activity data from CSV, builds a day-by-day schedule, prints a text table, and writes a schedule CSV file.
 
 ## Input CSV
 
@@ -53,12 +53,13 @@ Default template file:
 
 ```text
 # Wildweek default config
-# csv=sample.csv
+# csv=wild-events.csv
 # min_minutes=10
 # max_minutes=60
 # weeks=2
 # days=14
 # ics_file=wildweeks.csv
+# seed=12345
 ```
 
 Rules:
@@ -66,6 +67,8 @@ Rules:
 - Empty lines and `#` comments are ignored.
 - CLI args override config values.
 - If `days` is not set, scheduler uses `weeks * 7` (default `2` weeks).
+- Maximum schedule length is `35` days (5 weeks).
+- `seed` is config-only. When set, it enables reproducible shuffled activity ordering.
 
 ## Output
 
@@ -103,3 +106,5 @@ Current test coverage includes:
 - deterministic scheduling + constraints
 - schedule CSV generation
 - CLI-over-config precedence
+- 35-day cap / 5-week limit behavior
+- seeded reproducibility behavior
