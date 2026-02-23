@@ -68,22 +68,26 @@ class SchedulerTests(unittest.TestCase):
         out = scheduler.schedule(activities, days=35, min_minutes=0, max_minutes=40)
         self.assertEqual(len(out), 35)
 
-    def test_write_schedule_csv_creates_valid_csv_text(self):
+    def test_write_schedule_ics_creates_valid_ics_text(self):
         days = [[{"name": "Walk", "duration": 20, "probability": 1.0}], []]
         with tempfile.TemporaryDirectory() as td:
-            out_csv = os.path.join(td, "out.csv")
-            scheduler.write_schedule_csv(days, out_csv)
-            with open(out_csv, encoding="utf-8") as f:
+            out_ics = os.path.join(td, "out.ics")
+            scheduler.write_schedule_ics(days, out_ics)
+            with open(out_ics, encoding="utf-8") as f:
                 text = f.read()
-        self.assertIn("day,date,weekday,activity,duration,start_time,end_time", text)
-        self.assertIn(",Walk,20,09:00,09:20", text)
+        self.assertIn("BEGIN:VCALENDAR", text)
+        self.assertIn("END:VCALENDAR", text)
+        self.assertIn("BEGIN:VEVENT", text)
+        self.assertIn("SUMMARY:Walk", text)
 
     def test_cli_overrides_config(self):
         with tempfile.TemporaryDirectory() as td:
             csv_path = os.path.join(td, "in.csv")
             cfg_path = os.path.join(td, "cfg.conf")
-            cli_ics = os.path.join(td, "cli.csv")
-            cfg_ics = os.path.join(td, "cfg.csv")
+            cli_ics = os.path.join(td, "cli.ics")
+            cfg_ics = os.path.join(td, "cfg.ics")
+            cli_csv = os.path.join(td, "cli.csv")
+            cfg_csv = os.path.join(td, "cfg.csv")
             with open(csv_path, "w", encoding="utf-8") as f:
                 f.write("name,duration,probability\nLong,30,1.0\n")
             with open(cfg_path, "w", encoding="utf-8") as f:
@@ -106,12 +110,32 @@ class SchedulerTests(unittest.TestCase):
             )
             self.assertIn("1 (Mon) | 0 | -", cp.stdout)
             self.assertTrue(os.path.exists(cli_ics))
+            self.assertTrue(os.path.exists(cli_csv))
             self.assertFalse(os.path.exists(cfg_ics))
+            self.assertFalse(os.path.exists(cfg_csv))
+
+    def test_csv_output_is_written_alongside_ics(self):
+        with tempfile.TemporaryDirectory() as td:
+            days = [[{"name": "Walk", "duration": 20, "probability": 1.0}, {"name": "Read", "duration": 10, "probability": 1.0}], []]
+            out_ics = os.path.join(td, "out.ics")
+            out_csv = os.path.join(td, "out.csv")
+            scheduler.write_schedule_ics(days, out_ics)
+            scheduler.write_schedule_csv(days, out_csv)
+            with open(out_csv, encoding="utf-8") as f:
+                text = f.read()
+            self.assertTrue(os.path.exists(out_ics))
+            self.assertIn("day,date,weekday,activity,duration,start_time,end_time", text)
+            self.assertIn(",Walk,20,09:00,09:20", text)
+            self.assertIn(",Read,10,09:30,09:40", text)
+
+    def test_csv_filename_is_derived_from_ics_filename(self):
+        self.assertEqual(scheduler.csv_from_ics_filename("wildweeks.ics"), "wildweeks.csv")
+        self.assertEqual(scheduler.csv_from_ics_filename("custom-name"), "custom-name.csv")
 
     def test_cli_rejects_more_than_35_days(self):
         with tempfile.TemporaryDirectory() as td:
             csv_path = os.path.join(td, "in.csv")
-            out_csv = os.path.join(td, "out.csv")
+            out_csv = os.path.join(td, "out.ics")
             with open(csv_path, "w", encoding="utf-8") as f:
                 f.write("name,duration,probability\nLong,30,1.0\n")
             cp = subprocess.run(
@@ -136,9 +160,9 @@ class SchedulerTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             csv_path = os.path.join(td, "in.csv")
             cfg_path = os.path.join(td, "cfg.conf")
-            out_csv = os.path.join(td, "out.csv")
+            out_csv = os.path.join(td, "out.ics")
             with open(csv_path, "w", encoding="utf-8") as f:
-                f.write("name,duration,probability\nQuiet,10,0.0\n")
+                f.write("name,duration,probability\nQuiet,10,1.0\n")
             with open(cfg_path, "w", encoding="utf-8") as f:
                 f.write(
                     f"csv={csv_path}\nmin_minutes=0\nmax_minutes=60\nweeks=2\nics_file={out_csv}\n"
@@ -151,16 +175,16 @@ class SchedulerTests(unittest.TestCase):
                 text=True,
             )
             with open(out_csv, encoding="utf-8") as f:
-                lines = f.read().strip().splitlines()
-            self.assertEqual(len(lines) - 1, 14)
+                text = f.read()
+            self.assertEqual(text.count("BEGIN:VEVENT"), 14)
 
     def test_cli_uses_days_from_config_over_weeks(self):
         with tempfile.TemporaryDirectory() as td:
             csv_path = os.path.join(td, "in.csv")
             cfg_path = os.path.join(td, "cfg.conf")
-            out_csv = os.path.join(td, "out.csv")
+            out_csv = os.path.join(td, "out.ics")
             with open(csv_path, "w", encoding="utf-8") as f:
-                f.write("name,duration,probability\nQuiet,10,0.0\n")
+                f.write("name,duration,probability\nQuiet,10,1.0\n")
             with open(cfg_path, "w", encoding="utf-8") as f:
                 f.write(
                     f"csv={csv_path}\nmin_minutes=0\nmax_minutes=60\nweeks=2\ndays=3\nics_file={out_csv}\n"
@@ -173,16 +197,16 @@ class SchedulerTests(unittest.TestCase):
                 text=True,
             )
             with open(out_csv, encoding="utf-8") as f:
-                lines = f.read().strip().splitlines()
-            self.assertEqual(len(lines) - 1, 3)
+                text = f.read()
+            self.assertEqual(text.count("BEGIN:VEVENT"), 3)
 
     def test_cli_days_overrides_config_days_and_weeks(self):
         with tempfile.TemporaryDirectory() as td:
             csv_path = os.path.join(td, "in.csv")
             cfg_path = os.path.join(td, "cfg.conf")
-            out_csv = os.path.join(td, "out.csv")
+            out_csv = os.path.join(td, "out.ics")
             with open(csv_path, "w", encoding="utf-8") as f:
-                f.write("name,duration,probability\nQuiet,10,0.0\n")
+                f.write("name,duration,probability\nQuiet,10,1.0\n")
             with open(cfg_path, "w", encoding="utf-8") as f:
                 f.write(
                     f"csv={csv_path}\nmin_minutes=0\nmax_minutes=60\nweeks=2\ndays=3\nics_file={out_csv}\n"
@@ -195,8 +219,8 @@ class SchedulerTests(unittest.TestCase):
                 text=True,
             )
             with open(out_csv, encoding="utf-8") as f:
-                lines = f.read().strip().splitlines()
-            self.assertEqual(len(lines) - 1, 5)
+                text = f.read()
+            self.assertEqual(text.count("BEGIN:VEVENT"), 5)
 
 
 if __name__ == "__main__":

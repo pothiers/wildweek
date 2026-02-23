@@ -113,7 +113,41 @@ def print_table(days):
         print(f"{i} ({WEEKDAYS[(i - 1) % 7]}) | {total} | {names}")
 
 
+def write_schedule_ics(days, filename):
+    def round_up_half_hour(total_minutes):
+        return ((total_minutes + 29) // 30) * 30
+
+    start = dt.date.today()
+    stamp = dt.datetime.now(dt.UTC).strftime("%Y%m%dT%H%M%SZ")
+    lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Wildweek//Scheduler//EN"]
+    for i, activities in enumerate(days, start=1):
+        day = start + dt.timedelta(days=i - 1)
+        start_minute = 9 * 60
+        for a in activities:
+            start_minute = round_up_half_hour(start_minute)
+            h1, m1 = divmod(start_minute, 60)
+            st = dt.datetime(day.year, day.month, day.day, h1, m1)
+            en = st + dt.timedelta(minutes=a["duration"])
+            uid = f"{day.isoformat()}-{a['name'].replace(' ', '_')}-{start_minute}@wildweek"
+            lines += [
+                "BEGIN:VEVENT",
+                f"UID:{uid}",
+                f"DTSTAMP:{stamp}",
+                f"SUMMARY:{a['name']}",
+                f"DTSTART:{st.strftime('%Y%m%dT%H%M%S')}",
+                f"DTEND:{en.strftime('%Y%m%dT%H%M%S')}",
+                "END:VEVENT",
+            ]
+            start_minute += a["duration"]
+    lines.append("END:VCALENDAR")
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+
+
 def write_schedule_csv(days, filename):
+    def round_up_half_hour(total_minutes):
+        return ((total_minutes + 29) // 30) * 30
+
     start = dt.date.today()
     with open(filename, "w", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
@@ -125,6 +159,7 @@ def write_schedule_csv(days, filename):
                 w.writerow([i, day.isoformat(), WEEKDAYS[(i - 1) % 7], "", 0, "", ""])
                 continue
             for a in activities:
+                start_minute = round_up_half_hour(start_minute)
                 h1, m1 = divmod(start_minute, 60)
                 h2, m2 = divmod(start_minute + a["duration"], 60)
                 w.writerow([
@@ -137,6 +172,12 @@ def write_schedule_csv(days, filename):
                     f"{h2:02d}:{m2:02d}",
                 ])
                 start_minute += a["duration"]
+
+
+def csv_from_ics_filename(ics_filename):
+    if ics_filename.lower().endswith(".ics"):
+        return ics_filename[:-4] + ".csv"
+    return ics_filename + ".csv"
 
 
 def main():
@@ -161,13 +202,14 @@ def main():
         days = as_int("days", cfg["days"])
     else:
         days = weeks * 7
-    ics_file = args.ics_file or cfg.get("ics_file", "wildweeks.csv")
+    ics_file = args.ics_file or cfg.get("ics_file", "wildweeks.ics")
     seed = cfg.get("seed")
     activities = load_activities(csv_path)
     rng = random.Random(seed) if seed is not None and seed != "" else None
     plan = schedule(activities, days, min_minutes, max_minutes, rng=rng)
     print_table(plan)
-    write_schedule_csv(plan, ics_file)
+    write_schedule_ics(plan, ics_file)
+    write_schedule_csv(plan, csv_from_ics_filename(ics_file))
 
 
 if __name__ == "__main__":

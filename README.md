@@ -2,7 +2,7 @@
 
 Deterministic CLI scheduler for wildcard activities.
 
-It reads activity data from CSV, builds a day-by-day schedule, prints a text table, and writes a schedule CSV file.
+It reads activity data from CSV, builds a day-by-day schedule, prints a text table, writes an ICS file, and also writes a companion CSV schedule file.
 
 ## Install
 
@@ -57,7 +57,7 @@ Supported flags:
 - `--min_minutes`: minimum daily minutes for wildcard activities (default: `10`)
 - `--max_minutes`: maximum daily minutes for wildcard activities (default: `60`)
 - `--days`: number of days to schedule (overrides config `weeks`)
-- `--ics_file`: output schedule CSV filename (default: `wildweeks.csv`)
+- `--ics_file`: output ICS filename (default: `wildweeks.ics`)
 
 ## Config File
 
@@ -72,7 +72,7 @@ Default template file:
 # max_minutes=60
 # weeks=2
 # days=14
-# ics_file=wildweeks.csv
+# ics_file=wildweeks.ics
 # seed=12345
 ```
 
@@ -97,7 +97,10 @@ Day | Total Minutes | Activities
 2 (Tue) | 75 | Hike(30), Cafe(20), Read(25)
 ```
 
-- CSV schedule file to `--ics_file` path (or `wildweeks.csv` by default).
+- ICS file at `--ics_file` path (or `wildweeks.ics` by default).
+- Additional CSV schedule file derived from the ICS filename:
+  - `something.ics` -> `something.csv`
+  - otherwise `something` -> `something.csv`
 
 ## Scheduling Behavior
 
@@ -105,6 +108,7 @@ Day | Total Minutes | Activities
 - An activity appears at most once per day.
 - Daily total is constrained by `min_minutes` and `max_minutes` when possible.
 - Effective activity probability increases with days since last use.
+- Event start times are rounded up to the next half hour in both ICS and companion CSV outputs.
 
 ## Tests
 
@@ -118,7 +122,8 @@ Current test coverage includes:
 
 - CSV parsing
 - deterministic scheduling + constraints
-- schedule CSV generation
+- ICS generation
+- companion CSV generation
 - CLI-over-config precedence
 - 35-day cap / 5-week limit behavior
 - seeded reproducibility behavior
