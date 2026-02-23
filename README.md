@@ -2,7 +2,7 @@
 
 Deterministic CLI scheduler for wildcard activities.
 
-It reads activity data from CSV, builds a day-by-day schedule, prints a text table, and writes an ICS calendar file.
+It reads activity data from CSV, builds a day-by-day schedule, prints a text table, and writes an schedule CSV file.
 
 ## Input CSV
 
@@ -42,8 +42,8 @@ Supported flags:
 - `--config`: config file path (default: `wildweek.conf`)
 - `--min_minutes`: minimum daily minutes for wildcard activities (default: `10`)
 - `--max_minutes`: maximum daily minutes for wildcard activities (default: `60`)
-- `--days`: number of days to schedule (default: `7`)
-- `--ics_file`: output ICS filename (default: `wildweeks.ics`)
+- `--days`: number of days to schedule (overrides config `weeks`)
+- `--ics_file`: output schedule CSV filename (default: `wildweeks.csv`)
 
 ## Config File
 
@@ -56,14 +56,16 @@ Default template file:
 # csv=sample.csv
 # min_minutes=10
 # max_minutes=60
-# days=7
-# ics_file=wildweeks.ics
+# weeks=2
+# days=14
+# ics_file=wildweeks.csv
 ```
 
 Rules:
 
 - Empty lines and `#` comments are ignored.
 - CLI args override config values.
+- If `days` is not set, scheduler uses `weeks * 7` (default `2` weeks).
 
 ## Output
 
@@ -78,7 +80,7 @@ Day | Total Minutes | Activities
 2 (Tue) | 75 | Hike(30), Cafe(20), Read(25)
 ```
 
-- ICS file to `--ics_file` path (or `wildweeks.ics` by default).
+- CSV schedule file to `--ics_file` path (or `wildweeks.csv` by default).
 
 ## Scheduling Behavior
 
@@ -99,5 +101,5 @@ Current test coverage includes:
 
 - CSV parsing
 - deterministic scheduling + constraints
-- ICS file generation
+- schedule CSV generation
 - CLI-over-config precedence
