@@ -154,6 +154,50 @@ class SchedulerTests(unittest.TestCase):
                 lines = f.read().strip().splitlines()
             self.assertEqual(len(lines) - 1, 14)
 
+    def test_cli_uses_days_from_config_over_weeks(self):
+        with tempfile.TemporaryDirectory() as td:
+            csv_path = os.path.join(td, "in.csv")
+            cfg_path = os.path.join(td, "cfg.conf")
+            out_csv = os.path.join(td, "out.csv")
+            with open(csv_path, "w", encoding="utf-8") as f:
+                f.write("name,duration,probability\nQuiet,10,0.0\n")
+            with open(cfg_path, "w", encoding="utf-8") as f:
+                f.write(
+                    f"csv={csv_path}\nmin_minutes=0\nmax_minutes=60\nweeks=2\ndays=3\nics_file={out_csv}\n"
+                )
+            subprocess.run(
+                [sys.executable, "scheduler.py", "--config", cfg_path],
+                cwd=os.getcwd(),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            with open(out_csv, encoding="utf-8") as f:
+                lines = f.read().strip().splitlines()
+            self.assertEqual(len(lines) - 1, 3)
+
+    def test_cli_days_overrides_config_days_and_weeks(self):
+        with tempfile.TemporaryDirectory() as td:
+            csv_path = os.path.join(td, "in.csv")
+            cfg_path = os.path.join(td, "cfg.conf")
+            out_csv = os.path.join(td, "out.csv")
+            with open(csv_path, "w", encoding="utf-8") as f:
+                f.write("name,duration,probability\nQuiet,10,0.0\n")
+            with open(cfg_path, "w", encoding="utf-8") as f:
+                f.write(
+                    f"csv={csv_path}\nmin_minutes=0\nmax_minutes=60\nweeks=2\ndays=3\nics_file={out_csv}\n"
+                )
+            subprocess.run(
+                [sys.executable, "scheduler.py", "--config", cfg_path, "--days", "5"],
+                cwd=os.getcwd(),
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+            with open(out_csv, encoding="utf-8") as f:
+                lines = f.read().strip().splitlines()
+            self.assertEqual(len(lines) - 1, 5)
+
 
 if __name__ == "__main__":
     unittest.main()
