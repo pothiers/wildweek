@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wildweek"
+version = "0.3.0.dev0"
+description = "Deterministic wildcard activity scheduler with CSV output"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { file = "LICENSE" }
+authors = [{ name = "Wildweek Contributors" }]
+keywords = ["scheduler", "cli", "calendar", "csv", "deterministic"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
+  "Environment :: Console",
+  "Intended Audience :: End Users/Desktop",
+  "Topic :: Office/Business :: Scheduling",
+]
+
+[project.scripts]
+wildweek = "scheduler:main"
+
+[tool.setuptools]
+py-modules = ["scheduler"]
