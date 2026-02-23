@@ -4,6 +4,20 @@ Deterministic CLI scheduler for wildcard activities.
 
 It reads activity data from CSV, builds a day-by-day schedule, prints a text table, and writes a schedule CSV file.
 
+## Install
+
+From PyPI:
+
+```bash
+pip install wildweek
+```
+
+From source (development):
+
+```bash
+pip install -e .
+```
+
 ## Input CSV
 
 CSV headers must be:
@@ -33,7 +47,7 @@ Stargazing,35,0.55
 Run:
 
 ```bash
-python3 scheduler.py --csv wild-events.csv
+wildweek --csv wild-events.csv
 ```
 
 Supported flags:
@@ -108,3 +122,17 @@ Current test coverage includes:
 - CLI-over-config precedence
 - 35-day cap / 5-week limit behavior
 - seeded reproducibility behavior
+
+## Build And Publish
+
+Build distributions:
+
+```bash
+python3 -m build
+```
+
+Upload to PyPI:
+
+```bash
+python3 -m twine upload dist/*
+```
