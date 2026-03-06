@@ -104,9 +104,14 @@ def load_config(path="wildweek.cfg"):
 
 
 def main():
-    config = load_config()
+    pre = argparse.ArgumentParser(add_help=False)
+    pre.add_argument("--config", default="wildweek.cfg")
+    pre_args, _ = pre.parse_known_args()
+    config = load_config(pre_args.config)
 
     parser = argparse.ArgumentParser(description="Deterministic weekly scheduler")
+    parser.add_argument("--config", default="wildweek.cfg",
+                        help="Path to config file (default: wildweek.cfg)")
     parser.add_argument("csv", nargs="?", default=config["csv"],
                         help="Path to tasks CSV file")
     parser.add_argument("--daily-limit", type=int, default=config["daily_limit"],
