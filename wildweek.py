@@ -22,12 +22,8 @@ def load_tasks(csv_path):
     return tasks
 
 
-def select_tasks(tasks, seed):
+def schedule(tasks, daily_limit, max_week_minutes, seed):
     rng = random.Random(seed)
-    return [t for t in tasks if rng.random() < t["probability"]]
-
-
-def schedule(tasks, daily_limit, max_week_minutes):
     week = {day: [] for day in DAYS}
     week_total = 0
 
@@ -36,6 +32,8 @@ def schedule(tasks, daily_limit, max_week_minutes):
         for task in tasks:
             if week_total + task["duration"] > max_week_minutes:
                 break
+            if rng.random() >= task["probability"]:
+                continue
             if day_total + task["duration"] > daily_limit:
                 continue
             week[day].append(task)
@@ -90,8 +88,7 @@ def main():
         parser.error("csv is required (via argument or wildweek.cfg)")
 
     tasks = load_tasks(args.csv)
-    tasks = select_tasks(tasks, args.seed)
-    week = schedule(tasks, args.daily_limit, args.max_week_minutes)
+    week = schedule(tasks, args.daily_limit, args.max_week_minutes, args.seed)
     print_schedule(week)
 
 
