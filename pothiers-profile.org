@@ -1,0 +1,37 @@
+* User Profile: pothiers
+
+** System
+- Username: ~pothiers~
+- Editor: Emacs (keybindings can conflict with terminal/Claude Code; use mouse to copy from Claude output)
+- Shell: bash
+- OS: Linux (Ubuntu, kernel 6.8)
+
+** Preferences
+- Responses should be brief and direct
+- No emojis unless explicitly requested
+- All generated ~.md~ files must include the prompt that requested them
+- All generated ~.org~ files must include the prompt that requested them
+
+** Claude Code Rules
+- Work only within the project directory and its children (never access parent directories without explicit permission)
+- ~git*~ commands are auto-approved (no prompt needed)
+- "capture progress": update docs, update tests, test software; if tests pass → auto commit; do NOT auto push
+- "capture profile": generate/overwrite ~pothiers-profile.org~ in the project directory with current memory of user
+
+** Document Conventions
+- All ~.md~ files must include a section with the prompt used to request them
+- All ~.org~ files must include a section with the prompt used to request them
+
+** Projects
+*** Wildweek
+- Path: ~/home/pothiers/sandbox/ai-trials/claude/wildweek/~
+- GitHub: ~git@github.com:pothiers/wildweek.git~
+- PyPI: ~wildweek~ (latest: 0.3.0a2)
+- Branches: ~main~, ~dev~, ~random_select~
+- Git tag ~greedy~ marks initial deterministic-only version
+
+** Prompt Used to Generate This File
+
+#+begin_quote
+capture profile
+#+end_quote
