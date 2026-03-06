@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "wildweek"
+version = "0.2.0"
+description = "Minimal CLI weekly scheduler with probability-based task selection"
+readme = "README.md"
+requires-python = ">=3.6"
+dependencies = []
+
+[project.scripts]
+wildweek = "wildweek:main"
+
+[tool.setuptools]
+py-modules = ["wildweek"]
