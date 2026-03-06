@@ -44,34 +44,37 @@ def schedule(tasks, daily_limit, max_week_minutes, seed):
     return week
 
 
-def print_schedule(week):
+def print_schedule(week, label):
+    print(f"\n{label}")
     for day in DAYS:
         tasks = week[day]
         if tasks:
             items = ", ".join(f"{t['name']} ({t['duration']}min)" for t in tasks)
         else:
             items = "(rest)"
-        print(f"{day}: {items}")
+        print(f"  {day}: {items}")
 
 
-def write_ics(week, filename):
+def write_ics(weeks, filename):
     today = date.today()
     days_until_monday = (7 - today.weekday()) % 7
-    week_start = today + timedelta(days=days_until_monday if days_until_monday else 7)
+    first_monday = today + timedelta(days=days_until_monday if days_until_monday else 7)
 
     lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Wildweek//EN"]
-    for i, day in enumerate(DAYS):
-        day_date = week_start + timedelta(days=i)
-        for task in week[day]:
-            uid = f"{day_date.strftime('%Y%m%d')}-{task['name'].replace(' ', '')}@wildweek"
-            lines += [
-                "BEGIN:VEVENT",
-                f"UID:{uid}",
-                f"DTSTART;VALUE=DATE:{day_date.strftime('%Y%m%d')}",
-                f"DTEND;VALUE=DATE:{(day_date + timedelta(days=1)).strftime('%Y%m%d')}",
-                f"SUMMARY:{task['name']} ({task['duration']}min)",
-                "END:VEVENT",
-            ]
+    for w, week in enumerate(weeks):
+        week_start = first_monday + timedelta(weeks=w)
+        for i, day in enumerate(DAYS):
+            day_date = week_start + timedelta(days=i)
+            for task in week[day]:
+                uid = f"{day_date.strftime('%Y%m%d')}-{task['name'].replace(' ', '')}@wildweek"
+                lines += [
+                    "BEGIN:VEVENT",
+                    f"UID:{uid}",
+                    f"DTSTART;VALUE=DATE:{day_date.strftime('%Y%m%d')}",
+                    f"DTEND;VALUE=DATE:{(day_date + timedelta(days=1)).strftime('%Y%m%d')}",
+                    f"SUMMARY:{task['name']} ({task['duration']}min)",
+                    "END:VEVENT",
+                ]
     lines.append("END:VCALENDAR")
     with open(filename, "w") as f:
         f.write("\r\n".join(lines) + "\r\n")
@@ -79,7 +82,7 @@ def write_ics(week, filename):
 
 
 def load_config(path="wildweek.cfg"):
-    config = {"csv": None, "daily_limit": 120, "max_week_minutes": 600, "seed": 42, "ics": None}
+    config = {"csv": None, "daily_limit": 120, "max_week_minutes": 600, "seed": 42, "ics": None, "weeks": 3}
     if os.path.exists(path):
         cp = configparser.ConfigParser()
         cp.read(path)
@@ -94,6 +97,8 @@ def load_config(path="wildweek.cfg"):
             config["seed"] = int(sec["seed"])
         if "ics" in sec:
             config["ics"] = sec["ics"]
+        if "weeks" in sec:
+            config["weeks"] = int(sec["weeks"])
     return config
 
 
@@ -111,16 +116,21 @@ def main():
                         help="Random seed for task selection")
     parser.add_argument("--ics", default=config["ics"],
                         help="Output ICS filename (optional)")
+    parser.add_argument("--weeks", type=int, default=config["weeks"],
+                        help="Number of weeks to generate (default: 3)")
     args = parser.parse_args()
 
     if not args.csv:
         parser.error("csv is required (via argument or wildweek.cfg)")
 
     tasks = load_tasks(args.csv)
-    week = schedule(tasks, args.daily_limit, args.max_week_minutes, args.seed)
-    print_schedule(week)
+    weeks = []
+    for i in range(args.weeks):
+        week = schedule(tasks, args.daily_limit, args.max_week_minutes, args.seed + i)
+        weeks.append(week)
+        print_schedule(week, f"Week {i + 1}")
     if args.ics:
-        write_ics(week, args.ics)
+        write_ics(weeks, args.ics)
 
 
 if __name__ == "__main__":
