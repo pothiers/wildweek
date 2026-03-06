@@ -16,10 +16,11 @@ def load_tasks(csv_path):
         reader = csv.DictReader(f)
         for row in reader:
             name = row["name"].strip()
+            if not name:
+                continue
             duration = int(row["duration"])
             probability = float(row["probability"]) if "probability" in row else 1.0
-            if name:
-                tasks.append({"name": name, "duration": duration, "probability": probability})
+            tasks.append({"name": name, "duration": duration, "probability": probability})
     return tasks
 
 
