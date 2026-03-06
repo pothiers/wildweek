@@ -98,6 +98,26 @@ class TestWriteIcs(unittest.TestCase):
             self.assertIn("BEGIN:VCALENDAR", content)
             self.assertIn("END:VCALENDAR", content)
             self.assertIn("BEGIN:VEVENT", content)
+            self.assertIn("DTSTART:", content)
+            self.assertNotIn("VALUE=DATE", content)
+        finally:
+            os.unlink(path)
+
+    def test_ics_times_start_at_default_and_advance(self):
+        tasks = [
+            {"name": "A", "duration": 30, "probability": 1.0},
+            {"name": "B", "duration": 25, "probability": 1.0},
+        ]
+        week = schedule(tasks, 120, 600, 42)
+        with tempfile.NamedTemporaryFile(suffix=".ics", delete=False) as f:
+            path = f.name
+        try:
+            write_ics([week], path, start_time="09:00")
+            with open(path) as fh:
+                content = fh.read()
+            # A starts at 09:00, B starts at 09:30 (30min rounded to 30)
+            self.assertIn("T090000", content)
+            self.assertIn("T093000", content)
         finally:
             os.unlink(path)
 

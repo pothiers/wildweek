@@ -5,6 +5,7 @@ import argparse
 import configparser
 import os
 import random
+import math
 from datetime import date, timedelta
 
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
@@ -56,7 +57,14 @@ def print_schedule(week, label):
         print(f"  {day}: {items}")
 
 
-def write_ics(weeks, filename):
+def _round_half_hour(minutes):
+    return math.ceil(minutes / 30) * 30
+
+
+def write_ics(weeks, filename, start_time="09:00"):
+    sh, sm = map(int, start_time.split(":"))
+    start_minutes = sh * 60 + sm
+
     today = date.today()
     days_until_monday = (7 - today.weekday()) % 7
     first_monday = today + timedelta(days=days_until_monday if days_until_monday else 7)
@@ -66,16 +74,20 @@ def write_ics(weeks, filename):
         week_start = first_monday + timedelta(weeks=w)
         for i, day in enumerate(DAYS):
             day_date = week_start + timedelta(days=i)
+            current = start_minutes
             for task in week[day]:
                 uid = f"{day_date.strftime('%Y%m%d')}-{task['name'].replace(' ', '')}@wildweek"
+                bh, bm = divmod(current, 60)
+                eh, em = divmod(current + task["duration"], 60)
                 lines += [
                     "BEGIN:VEVENT",
                     f"UID:{uid}",
-                    f"DTSTART;VALUE=DATE:{day_date.strftime('%Y%m%d')}",
-                    f"DTEND;VALUE=DATE:{(day_date + timedelta(days=1)).strftime('%Y%m%d')}",
+                    f"DTSTART:{day_date.strftime('%Y%m%d')}T{bh:02d}{bm:02d}00",
+                    f"DTEND:{day_date.strftime('%Y%m%d')}T{eh:02d}{em:02d}00",
                     f"SUMMARY:{task['name']} ({task['duration']}min)",
                     "END:VEVENT",
                 ]
+                current += _round_half_hour(task["duration"])
     lines.append("END:VCALENDAR")
     with open(filename, "w") as f:
         f.write("\r\n".join(lines) + "\r\n")
@@ -83,7 +95,7 @@ def write_ics(weeks, filename):
 
 
 def load_config(path="wildweek.cfg"):
-    config = {"csv": None, "daily_limit": 120, "max_week_minutes": 600, "seed": 42, "ics": "wildweek.ics", "weeks": 3}
+    config = {"csv": None, "daily_limit": 120, "max_week_minutes": 600, "seed": 42, "ics": "wildweek.ics", "weeks": 3, "start_time": "09:00"}
     if os.path.exists(path):
         cp = configparser.ConfigParser()
         cp.read(path)
@@ -100,6 +112,8 @@ def load_config(path="wildweek.cfg"):
             config["ics"] = sec["ics"]
         if "weeks" in sec:
             config["weeks"] = int(sec["weeks"])
+        if "start_time" in sec:
+            config["start_time"] = sec["start_time"]
     return config
 
 
@@ -124,6 +138,8 @@ def main():
                         help="Output ICS filename (optional)")
     parser.add_argument("--weeks", type=int, default=config["weeks"],
                         help="Number of weeks to generate (default: 3)")
+    parser.add_argument("--start-time", default=config["start_time"],
+                        help="Daily start time HH:MM (default: 09:00)")
     args = parser.parse_args()
 
     if not args.csv:
@@ -136,7 +152,7 @@ def main():
         weeks.append(week)
         print_schedule(week, f"Week {i + 1}")
     if args.ics:
-        write_ics(weeks, args.ics)
+        write_ics(weeks, args.ics, args.start_time)
 
 
 if __name__ == "__main__":
