@@ -2,6 +2,8 @@
 import csv
 import sys
 import argparse
+import configparser
+import os
 
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
@@ -46,14 +48,35 @@ def print_schedule(week):
         print(f"{day}: {items}")
 
 
+def load_config(path="wildweek.cfg"):
+    config = {"csv": None, "daily_limit": 120, "max_week_minutes": 600}
+    if os.path.exists(path):
+        cp = configparser.ConfigParser()
+        cp.read(path)
+        sec = cp["wildweek"] if "wildweek" in cp else {}
+        if "csv" in sec:
+            config["csv"] = sec["csv"]
+        if "daily_limit" in sec:
+            config["daily_limit"] = int(sec["daily_limit"])
+        if "max_week_minutes" in sec:
+            config["max_week_minutes"] = int(sec["max_week_minutes"])
+    return config
+
+
 def main():
+    config = load_config()
+
     parser = argparse.ArgumentParser(description="Deterministic weekly scheduler")
-    parser.add_argument("csv", help="Path to tasks CSV file")
-    parser.add_argument("--daily-limit", type=int, default=120,
-                        help="Max minutes per day (default: 120)")
-    parser.add_argument("--max-week-minutes", type=int, default=600,
-                        help="Max minutes per week (default: 600)")
+    parser.add_argument("csv", nargs="?", default=config["csv"],
+                        help="Path to tasks CSV file")
+    parser.add_argument("--daily-limit", type=int, default=config["daily_limit"],
+                        help="Max minutes per day")
+    parser.add_argument("--max-week-minutes", type=int, default=config["max_week_minutes"],
+                        help="Max minutes per week")
     args = parser.parse_args()
+
+    if not args.csv:
+        parser.error("csv is required (via argument or wildweek.cfg)")
 
     tasks = load_tasks(args.csv)
     week = schedule(tasks, args.daily_limit, args.max_week_minutes)
