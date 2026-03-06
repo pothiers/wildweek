@@ -1,143 +1,118 @@
 # Wildweek
 
-Deterministic CLI scheduler for wildcard activities.
+A minimal CLI weekly scheduler with probability-based task selection.
 
-It reads activity data from CSV, builds a day-by-day schedule, prints a text table, writes an ICS file, and also writes a companion CSV schedule file.
+## Version
 
-## Install
+v0.2
 
-From PyPI:
+## Usage
 
-```bash
-pip install wildweek
+```
+python3 wildweek.py [tasks.csv] [--daily-limit MINUTES] [--max-week-minutes MINUTES] [--seed N] [--ics FILE]
 ```
 
-From source (development):
+All arguments have defaults from `wildweek.cfg`. CLI arguments override config values.
 
-```bash
-pip install -e .
+### Arguments
+
+| Argument | Default | Description |
+|---|---|---|
+| `csv` | (from config) | Path to tasks CSV file |
+| `--daily-limit` | 120 | Max minutes scheduled per day |
+| `--max-week-minutes` | 600 | Max total minutes scheduled per week |
+| `--seed` | 42 | Random seed for reproducible task selection |
+| `--ics` | (from config) | Output ICS filename (omit to skip ICS export) |
+
+### Examples
+
+```
+python3 wildweek.py                              # uses wildweek.cfg defaults
+python3 wildweek.py tasks.csv --seed 7           # different weekly draw
+python3 wildweek.py --ics schedule.ics           # export to ICS
+python3 wildweek.py --daily-limit 180 --max-week-minutes 900
 ```
 
-## Input CSV
+### Text Output
 
-CSV headers must be:
-
-```csv
-name,duration,probability
 ```
-
-- `name`: activity name
-- `duration`: minutes (integer, `>= 0`)
-- `probability`: float in `[0,1]`
-
-Example (`wild-events.csv`):
-
-```csv
-name,duration,probability
-Forest Trail,40,0.45
-Birdwatching,30,0.35
-Farmers Market,50,0.30
-Kayak,60,0.20
-Campfire,45,0.40
-Stargazing,35,0.55
+Monday: Walk-a-bout (120min)
+Tuesday: Hike (90min), Call friend (25min), Didgeridoo (5min)
+Wednesday: Call friend (25min), Didgeridoo (5min)
+...
+Sunday: Hike (90min)
+ICS written to wildweek.ics
 ```
-
-## Command Line
-
-Run:
-
-```bash
-wildweek --csv wild-events.csv
-```
-
-Supported flags:
-
-- `--csv`: input CSV path
-- `--config`: config file path (default: `wildweek.conf`)
-- `--min_minutes`: minimum daily minutes for wildcard activities (default: `10`)
-- `--max_minutes`: maximum daily minutes for wildcard activities (default: `60`)
-- `--days`: number of days to schedule (overrides config `weeks`)
-- `--ics_file`: output ICS filename (default: `wildweeks.ics`)
 
 ## Config File
 
-All parameters can be set in config as `key=value` lines.
+`wildweek.cfg` (INI format) provides defaults for all CLI arguments:
 
-Default template file:
-
-```text
-# Wildweek default config
-# csv=wild-events.csv
-# min_minutes=10
-# max_minutes=60
-# weeks=2
-# days=14
-# ics_file=wildweeks.ics
-# seed=12345
+```ini
+[wildweek]
+csv = tasks.csv
+daily_limit = 120
+max_week_minutes = 600
+seed = 42
+ics = wildweek.ics
 ```
 
-Rules:
+Omit `ics` to disable ICS output by default.
 
-- Empty lines and `#` comments are ignored.
-- CLI args override config values.
-- If `days` is not set, scheduler uses `weeks * 7` (default `2` weeks).
-- Maximum schedule length is `35` days (5 weeks).
-- `seed` is config-only. When set, it enables reproducible shuffled activity ordering.
+## Input CSV Format
 
-## Output
+| Column | Type | Description |
+|---|---|---|
+| `name` | string | Task name |
+| `duration` | integer | Duration in minutes |
+| `probability` | float 0–1 | Probability task is chosen each day |
 
-The CLI writes:
+### Example tasks.csv
 
-- Text table to stdout, e.g.:
-
-```text
-Day | Total Minutes | Activities
---- | ------------- | ----------
-1 (Mon) | 75 | Hike(30), Museum(45)
-2 (Tue) | 75 | Hike(30), Cafe(20), Read(25)
+```
+name,duration,probability
+Hike,90,0.40
+Walk-a-bout,120,0.05
+Call friend,25,0.35
+Tai Chi,10,0.55
+Piano,20,0.55
+Didgeridoo,5,0.55
+Read,25,0.60
 ```
 
-- ICS file at `--ics_file` path (or `wildweeks.ics` by default).
-- Additional CSV schedule file derived from the ICS filename:
-  - `something.ics` -> `something.csv`
-  - otherwise `something` -> `something.csv`
+## Scheduling Algorithm
 
-## Scheduling Behavior
+1. Seed the random number generator with `--seed`.
+2. Iterate over days Monday through Sunday.
+3. For each day, iterate over tasks in CSV order.
+4. For each task, roll against its `probability` — skip if the roll fails.
+5. Assign the task to the day if it fits within `daily_limit` and `max_week_minutes`.
+6. Days with no tasks assigned are shown as `(rest)`.
 
-- Deterministic draw function (same inputs produce same schedule).
-- An activity appears at most once per day.
-- Daily total is constrained by `min_minutes` and `max_minutes` when possible.
-- Effective activity probability increases with days since last use.
-- Event start times are rounded up to the next half hour in both ICS and companion CSV outputs.
+The same seed always produces the same schedule. Change the seed for a different weekly draw.
 
-## Tests
+## ICS Export
 
-Run:
+When `--ics` is provided (or set in config), an ICS file is written suitable for import into Google Calendar or any calendar application. Events are all-day entries starting the next Monday from today's date.
 
-```bash
-python3 -m unittest discover -s tests -v
-```
+## Specifications Honored
 
-Current test coverage includes:
+- Probability-based per-day task selection using `probability` column
+- Reproducible output via random seed
+- 7 fixed days: Monday through Sunday
+- Respects `--daily-limit` (minutes per day)
+- Respects `--max-week-minutes` (total minutes per week)
+- Config file with CLI override for all parameters
+- ICS calendar export (no external dependencies)
+- Simple CSV input — no external dependencies (stdlib only)
+- Under 150 lines of source code
+- Duration unit is minutes throughout
 
-- CSV parsing
-- deterministic scheduling + constraints
-- ICS generation
-- companion CSV generation
-- CLI-over-config precedence
-- 35-day cap / 5-week limit behavior
-- seeded reproducibility behavior
+## Requirements
 
-## Build And Publish
+- Python 3.6+
+- No external dependencies (stdlib only)
 
-Build distributions:
+## Prompt Used to Generate This Document
 
-```bash
-python3 -m build
-```
-
-Upload to PyPI:
-
-```bash
-python3 -m twine upload dist/*
-```
+> capture progress
