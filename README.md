@@ -87,3 +87,7 @@ The schedule is fully deterministic: the same inputs always produce the same out
 
 - Python 3.6+
 - No external dependencies (stdlib only)
+
+## Prompt Used to Generate This Document
+
+> create documentation for the current design. Include the specifications that are honored by this version.
