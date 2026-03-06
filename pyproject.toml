@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wildweek"
-version = "0.3.0a1"
+version = "0.3.0a2"
 description = "Minimal CLI weekly scheduler with probability-based task selection"
 readme = "README.md"
 requires-python = ">=3.6"
