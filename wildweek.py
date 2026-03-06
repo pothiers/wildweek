@@ -83,7 +83,7 @@ def write_ics(weeks, filename):
 
 
 def load_config(path="wildweek.cfg"):
-    config = {"csv": None, "daily_limit": 120, "max_week_minutes": 600, "seed": 42, "ics": None, "weeks": 3}
+    config = {"csv": None, "daily_limit": 120, "max_week_minutes": 600, "seed": 42, "ics": "wildweek.ics", "weeks": 3}
     if os.path.exists(path):
         cp = configparser.ConfigParser()
         cp.read(path)

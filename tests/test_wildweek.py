@@ -135,7 +135,7 @@ class TestLoadConfig(unittest.TestCase):
         self.assertEqual(config["max_week_minutes"], 600)
         self.assertEqual(config["seed"], 42)
         self.assertEqual(config["weeks"], 3)
-        self.assertIsNone(config["ics"])
+        self.assertEqual(config["ics"], "wildweek.ics")
 
     def test_reads_values_from_file(self):
         with tempfile.NamedTemporaryFile(mode="w", suffix=".cfg", delete=False) as f:
