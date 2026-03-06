@@ -5,6 +5,7 @@ import argparse
 import configparser
 import os
 import random
+from datetime import date, timedelta
 
 DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 
@@ -53,8 +54,32 @@ def print_schedule(week):
         print(f"{day}: {items}")
 
 
+def write_ics(week, filename):
+    today = date.today()
+    days_until_monday = (7 - today.weekday()) % 7
+    week_start = today + timedelta(days=days_until_monday if days_until_monday else 7)
+
+    lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Wildweek//EN"]
+    for i, day in enumerate(DAYS):
+        day_date = week_start + timedelta(days=i)
+        for task in week[day]:
+            uid = f"{day_date.strftime('%Y%m%d')}-{task['name'].replace(' ', '')}@wildweek"
+            lines += [
+                "BEGIN:VEVENT",
+                f"UID:{uid}",
+                f"DTSTART;VALUE=DATE:{day_date.strftime('%Y%m%d')}",
+                f"DTEND;VALUE=DATE:{(day_date + timedelta(days=1)).strftime('%Y%m%d')}",
+                f"SUMMARY:{task['name']} ({task['duration']}min)",
+                "END:VEVENT",
+            ]
+    lines.append("END:VCALENDAR")
+    with open(filename, "w") as f:
+        f.write("\r\n".join(lines) + "\r\n")
+    print(f"ICS written to {filename}")
+
+
 def load_config(path="wildweek.cfg"):
-    config = {"csv": None, "daily_limit": 120, "max_week_minutes": 600, "seed": 42}
+    config = {"csv": None, "daily_limit": 120, "max_week_minutes": 600, "seed": 42, "ics": None}
     if os.path.exists(path):
         cp = configparser.ConfigParser()
         cp.read(path)
@@ -67,6 +92,8 @@ def load_config(path="wildweek.cfg"):
             config["max_week_minutes"] = int(sec["max_week_minutes"])
         if "seed" in sec:
             config["seed"] = int(sec["seed"])
+        if "ics" in sec:
+            config["ics"] = sec["ics"]
     return config
 
 
@@ -82,6 +109,8 @@ def main():
                         help="Max minutes per week")
     parser.add_argument("--seed", type=int, default=config["seed"],
                         help="Random seed for task selection")
+    parser.add_argument("--ics", default=config["ics"],
+                        help="Output ICS filename (optional)")
     args = parser.parse_args()
 
     if not args.csv:
@@ -90,6 +119,8 @@ def main():
     tasks = load_tasks(args.csv)
     week = schedule(tasks, args.daily_limit, args.max_week_minutes, args.seed)
     print_schedule(week)
+    if args.ics:
+        write_ics(week, args.ics)
 
 
 if __name__ == "__main__":
